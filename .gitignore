@@ -12,5 +12,5 @@ pretrain_log.csv
 /results/temp/
 # ignore others
 *.pyc
-
+tmp/
 

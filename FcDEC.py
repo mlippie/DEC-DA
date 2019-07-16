@@ -10,6 +10,7 @@ Author:
 from time import time
 import numpy as np
 import platform
+import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.layers import Layer, InputSpec, Input, Dense
 from tensorflow.keras.models import Model
@@ -144,7 +145,14 @@ class FcDEC(object):
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
 
         csv_logger = callbacks.CSVLogger(save_dir + '/pretrain_log.csv')
-        cb = [csv_logger]
+
+        tensorboard_dir = save_dir + '/tb'
+        summary_writer = tf.summary.create_file_writer(tensorboard_dir)
+        summary_writer.set_as_default()
+        tf.summary.image("restored_image", self.autoencoder.layers[-1].output, max_outputs=5)
+        tensorboard = callbacks.TensorBoard(log_dir=tensorboard_dir, profile_batch=0, update_freq='batch', write_images=True)
+
+        cb = [csv_logger, tensorboard]
         if y is not None and verbose > 0:
             class PrintACC(callbacks.Callback):
                 def __init__(self, x, y):
