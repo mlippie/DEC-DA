@@ -102,7 +102,6 @@ if __name__ == "__main__":
                         choices=['FcDEC', 'FcIDEC', 'ConvDEC', 'ConvIDEC', 'FcDEC-DA', 'FcIDEC-DA', 'ConvDEC-DA', 'ConvIDEC-DA'],
                         help="Clustering algorithm")
     parser.add_argument('--dataset', default='mnist',
-                        choices=['mnist', 'mnist-test', 'usps', 'fmnist'],
                         help="Dataset name to train on")
     parser.add_argument('-d', '--save-dir', default='results/temp',
                         help="Dir to save the results")
@@ -140,6 +139,10 @@ if __name__ == "__main__":
     print('+' * 30, ' Parameters ', '+' * 30)
     print(args)
     print('+' * 75)
+
+    from tensorflow import keras
+    keras.backend.set_image_data_format('channels_last')
+    print(keras.backend.image_data_format())
 
     # testing
     if args.testing:

@@ -1,4 +1,28 @@
 import numpy as np
+import tensorflow as tf
+import time
+import h5py
+
+class DatasetWrapper:
+    def __init__(self, h5fp):
+        channels = list(h5fp.keys())
+
+        shape = tuple([len(channels)] + list(h5fp[channels[-1]]["images"].shape))
+        self.images = np.empty(shape=shape, dtype=np.float32)
+        for i, chan in enumerate(channels):
+            ims = h5fp[chan]["images"]
+            masks = h5fp[chan]["masks"]
+
+            self.images[i] = np.multiply(ims, masks, dtype=np.float32)/2**16
+        self.images = np.moveaxis(self.images, 0, -1)
+
+
+def load_hdf5(dataset):
+    with h5py.File(dataset) as h5fp:    
+        ds = DatasetWrapper(h5fp)
+    
+    print("HDF5 samples", ds.images.shape)
+    return ds.images, None
 
 
 def load_mnist():
@@ -66,6 +90,8 @@ def load_data_conv(dataset):
         return load_fashion_mnist()
     elif dataset == 'usps':
         return load_usps()
+    elif "h5" in dataset or "hdf5" in dataset:
+        return load_hdf5(dataset)
     else:
         raise ValueError('Not defined for loading %s' % dataset)
 

@@ -6,7 +6,7 @@ Author:
     Xifeng Guo. 2018.6.30
 """
 
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape, InputLayer
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape, InputLayer, Cropping2D
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from FcDEC import FcDEC, ClusteringLayer
@@ -34,8 +34,13 @@ def CAE(input_shape=(28, 28, 1), filters=[32, 64, 128, 10]):
     model.add(Conv2DTranspose(filters[1], 3, strides=2, padding=pad3, activation='relu', name='deconv3'))
 
     model.add(Conv2DTranspose(filters[0], 5, strides=2, padding='same', activation='relu', name='deconv2'))
-
+model.layers[0].input_shape != model.layers[-1].output_shape
     model.add(Conv2DTranspose(input_shape[2], 5, strides=2, padding='same', name='deconv1'))
+
+    if model.layers[0].input_shape != model.layers[-1].output_shape:
+        crop = abs(model.layers[0].input_shape[1] - model.layers[-1].output_shape[1])//2
+        model.add(Cropping2D(crop))
+
     encoder = Model(inputs=model.input, outputs=model.get_layer('embedding').output)
     return model, encoder
 

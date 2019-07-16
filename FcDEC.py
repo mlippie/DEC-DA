@@ -178,7 +178,7 @@ class FcDEC(object):
                     gen0 = self.datagen.flow(x, shuffle=True, batch_size=batch_size)
                     while True:
                         batch_x = gen0.next()
-                        yield [batch_x, batch_x]
+                        yield tuple([batch_x, batch_x])
                 else:
                     width = int(np.sqrt(x.shape[-1]))
                     if width * width == x.shape[-1]:  # gray
@@ -190,10 +190,10 @@ class FcDEC(object):
                     while True:
                         batch_x = gen0.next()
                         batch_x = np.reshape(batch_x, [batch_x.shape[0], x.shape[-1]])
-                        yield [batch_x, batch_x]
+                        yield tuple([batch_x, batch_x])
             self.autoencoder.fit_generator(gen(x, batch_size), steps_per_epoch=int(x.shape[0]/batch_size),
                                            epochs=epochs, callbacks=cb, verbose=verbose,
-                                           workers=8, use_multiprocessing=True if platform.system() != "Windows" else False)
+                                           workers=8, use_multiprocessing=True if (platform.system() != "Windows") else False)
         print('Pretraining time: ', time() - t0)
         self.autoencoder.save_weights(save_dir + '/ae_weights.h5')
         print('Pretrained weights are saved to %s/ae_weights.h5' % save_dir)
