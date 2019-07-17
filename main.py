@@ -139,7 +139,7 @@ if __name__ == "__main__":
                         help="Number of iterations to update the target distribution")
     parser.add_argument('--tol', default=0.001, type=float,
                         help="Threshold of stopping training")
-    parser.add_argument('--n-clusters', default=10, type=float,
+    parser.add_argument('--n-clusters', default=10, type=int,
                         help="Number of clusters to look for")
     args = parser.parse_args()
     print('+' * 30, ' Parameters ', '+' * 30)
