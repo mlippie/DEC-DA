@@ -13,7 +13,8 @@ class DatasetWrapper:
             ims = h5fp[chan]["images"]
             masks = h5fp[chan]["masks"]
 
-            self.images[i] = np.multiply(ims, masks, dtype=np.float32)/2**16
+            self.images[i] = np.multiply(ims, masks, dtype=np.float32)
+            self.images[i] = (self.images[i]-self.images[i].min())/(self.images[i].max()+self.images[i].min())
         self.images = np.moveaxis(self.images, 0, -1)
 
 
@@ -100,3 +101,13 @@ def load_data(dataset):
     x, y = load_data_conv(dataset)
     return x.reshape([x.shape[0], -1]), y
 
+if __name__ == "__main__":
+    data = "/home/maximl/DATA/Experiment_data/9-color/earlyfix_d34.h5"
+
+    ds, _ = load_data_conv(data)
+
+    print(ds[0, :, :, 0].min(),ds[0, :, :, 0].max())
+
+    from matplotlib import pyplot as plt
+    plt.imshow(ds[0, :, :, 0])
+    plt.savefig("temp.png")
