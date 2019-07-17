@@ -27,7 +27,11 @@ def _get_data_and_model(args):
         optimizer = Adam()
 
     # prepare the model
-    n_clusters = len(np.unique(y))
+    if y is None:
+        n_clusters = args.n_clusters
+    else:
+        n_clusters = len(np.unique(y))
+
     if 'FcDEC' in args.method:
         model = FcDEC(dims=[x.shape[-1], 500, 500, 2000, 10], n_clusters=n_clusters)
         model.compile(optimizer=optimizer, loss='kld')
@@ -135,6 +139,8 @@ if __name__ == "__main__":
                         help="Number of iterations to update the target distribution")
     parser.add_argument('--tol', default=0.001, type=float,
                         help="Threshold of stopping training")
+    parser.add_argument('--n-clusters', default=10, type=float,
+                        help="Number of clusters to look for")
     args = parser.parse_args()
     print('+' * 30, ' Parameters ', '+' * 30)
     print(args)
