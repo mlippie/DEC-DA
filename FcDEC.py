@@ -149,10 +149,16 @@ class FcDEC(object):
         tensorboard_dir = save_dir + '/tb'
         summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         summary_writer.set_as_default()
-        tf.summary.image("restored_image", self.autoencoder.layers[-1].output, max_outputs=5)
-        tensorboard = callbacks.TensorBoard(log_dir=tensorboard_dir, profile_batch=0, update_freq='batch', write_images=True)
+
+        tensorboard = callbacks.TensorBoard(
+            log_dir=tensorboard_dir, 
+            profile_batch=0, 
+            update_freq='batch', 
+            write_images=True
+        )
 
         cb = [csv_logger, tensorboard]
+
         if y is not None and verbose > 0:
             class PrintACC(callbacks.Callback):
                 def __init__(self, x, y):
