@@ -150,6 +150,10 @@ class FcDEC(object):
         summary_writer = tf.summary.create_file_writer(tensorboard_dir)
         summary_writer.set_as_default()
 
+        if "Conv" in str(type(self)):
+            tf.summary.image("original_image", self.autoencoder.layers[0].input, max_outputs=5)
+            tf.summary.image("restored_image", self.autoencoder.layers[-1].output, max_outputs=5)
+        
         tensorboard = callbacks.TensorBoard(
             log_dir=tensorboard_dir, 
             profile_batch=0, 
