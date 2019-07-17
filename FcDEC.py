@@ -153,8 +153,9 @@ class FcDEC(object):
         tensorboard = callbacks.TensorBoard(
             log_dir=tensorboard_dir, 
             profile_batch=0, 
-            update_freq='batch', 
-            write_images=True
+            update_freq='epoch', 
+            write_images=True,
+            histogram_freq=1
         )
 
         cb = [csv_logger, tensorboard]
