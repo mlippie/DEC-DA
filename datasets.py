@@ -4,23 +4,36 @@ import time
 import h5py
 
 class DatasetWrapper:
-    def __init__(self, h5fp):
-        channels = list(h5fp.keys())
+    def __init__(self, h5fp, subset_key=None):
+        channels = [k for k in list(h5fp.keys()) if "channel" in k]
+        images_shape = list(h5fp[channels[0]]["images"].shape)
+        ims = np.empty(shape=images_shape, dtype=np.float32)
+        masks = np.empty(shape=images_shape, dtype=np.int8)
 
-        shape = tuple([len(channels)] + list(h5fp[channels[-1]]["images"].shape))
+        if subset_key is not None:
+            indices = h5fp["subsets"][subset_key][:]
+            images_shape[0] = len(indices)
+        else:
+            indices = np.s_[:]
+
+        shape = tuple([len(channels)] + images_shape)
         self.images = np.empty(shape=shape, dtype=np.float32)
+        
         for i, chan in enumerate(channels):
-            ims = h5fp[chan]["images"]
-            masks = h5fp[chan]["masks"]
+            h5fp[chan]["masks"].read_direct(ims)
+            h5fp[chan]["masks"].read_direct(masks)
 
-            self.images[i] = np.multiply(ims, masks, dtype=np.float32)
+            self.images[i] = np.multiply(ims[indices], masks[indices], dtype=np.float32)
             self.images[i] = (self.images[i]-self.images[i].min())/(self.images[i].max()+self.images[i].min())
         self.images = np.moveaxis(self.images, 0, -1)
 
 
-def load_hdf5(dataset):
-    with h5py.File(dataset) as h5fp:    
-        ds = DatasetWrapper(h5fp)
+def load_hdf5(dataset, subset_key=None):
+    with h5py.File(dataset) as h5fp:  
+        ds = DatasetWrapper(
+            h5fp,
+            subset_key
+        )
     
     print("HDF5 samples", ds.images.shape)
     return ds.images, None
@@ -82,7 +95,7 @@ def load_usps(data_path='./data/usps'):
     return x, y
 
 
-def load_data_conv(dataset):
+def load_data_conv(dataset, subset_key=None):
     if dataset == 'mnist':
         return load_mnist()
     elif dataset == 'mnist-test':
@@ -92,13 +105,13 @@ def load_data_conv(dataset):
     elif dataset == 'usps':
         return load_usps()
     elif "h5" in dataset or "hdf5" in dataset:
-        return load_hdf5(dataset)
+        return load_hdf5(dataset, subset_key)
     else:
         raise ValueError('Not defined for loading %s' % dataset)
 
 
-def load_data(dataset):
-    x, y = load_data_conv(dataset)
+def load_data(dataset, subset_key=None):
+    x, y = load_data_conv(dataset, subset_key)
     return x.reshape([x.shape[0], -1]), y
 
 if __name__ == "__main__":
