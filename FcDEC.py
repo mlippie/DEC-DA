@@ -19,6 +19,7 @@ from tensorflow.keras.initializers import VarianceScaling
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.cluster import KMeans
 import metrics
+from sklearn.model_selection import train_test_split
 
 
 def autoencoder(dims, act='relu'):
@@ -117,6 +118,26 @@ class ClusteringLayer(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class DASequence(tf.keras.utils.Sequence):
+
+    def __init__(self, x, batch_size):
+        self.x = x
+        self.batch_size = batch_size
+        self.datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, rotation_range=10)
+
+    def __len__(self):
+        return int(self.x.shape[0]/self.batch_size)
+
+    def __getitem__(self, idx):
+        start = idx*self.batch_size
+        end = min((idx+1)*self.batch_size, self.x.shape[0])
+        batch_x = self.x[start:end]
+
+        for i, x in enumerate(batch_x):
+            batch_x[i] = self.datagen.random_transform(x)
+        return tuple([batch_x, batch_x])
+
+
 class FcDEC(object):
     def __init__(self,
                  dims,
@@ -132,7 +153,6 @@ class FcDEC(object):
         self.n_clusters = n_clusters
         self.alpha = alpha
         self.pretrained = False
-        self.datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, rotation_range=10)
         self.autoencoder, self.encoder = autoencoder(self.dims)
 
         # prepare FcDEC model
@@ -159,6 +179,12 @@ class FcDEC(object):
         )
 
         cb = [csv_logger, tensorboard]
+            
+        # split train validation data
+        if y is None:
+            x, x_val = train_test_split(x, test_size=0.1)
+        else:
+            x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
 
         if y is not None and verbose > 0:
             class PrintACC(callbacks.Callback):
@@ -183,32 +209,28 @@ class FcDEC(object):
         # begin pretraining
         t0 = time()
         if not aug_pretrain:
-            self.autoencoder.fit(x, x, batch_size=batch_size, epochs=epochs, callbacks=cb, verbose=verbose)
+            self.autoencoder.fit(
+                x, x, batch_size=batch_size, 
+                epochs=epochs, callbacks=cb, 
+                validation_data=(x_val,x_val),
+                verbose=verbose
+            )
         else:
             print('-=*'*20)
             print('Using augmentation for ae')
             print('-=*'*20)
-            def gen(x, batch_size):
-                if len(x.shape) > 2:  # image
-                    gen0 = self.datagen.flow(x, shuffle=True, batch_size=batch_size)
-                    while True:
-                        batch_x = gen0.next()
-                        yield tuple([batch_x, batch_x])
-                else:
-                    width = int(np.sqrt(x.shape[-1]))
-                    if width * width == x.shape[-1]:  # gray
-                        im_shape = [-1, width, width, 1]
-                    else:  # RGB
-                        width = int(np.sqrt(x.shape[-1] / 3.0))
-                        im_shape = [-1, width, width, 3]
-                    gen0 = self.datagen.flow(np.reshape(x, im_shape), shuffle=True, batch_size=batch_size)
-                    while True:
-                        batch_x = gen0.next()
-                        batch_x = np.reshape(batch_x, [batch_x.shape[0], x.shape[-1]])
-                        yield tuple([batch_x, batch_x])
-            self.autoencoder.fit_generator(gen(x, batch_size), steps_per_epoch=int(x.shape[0]/batch_size),
-                                           epochs=epochs, callbacks=cb, verbose=verbose,
-                                           workers=8, use_multiprocessing=True if (platform.system() != "Windows") else False)
+
+            seq = DASequence(x, batch_size)
+            val_seq = DASequence(x_val, batch_size)
+
+            self.autoencoder.fit_generator(
+                seq, steps_per_epoch=len(seq), 
+                epochs=epochs, callbacks=cb, verbose=verbose, 
+                validation_data=val_seq,
+                validation_steps=len(val_seq),
+                workers=8
+            )
+
         print('Pretraining time: ', time() - t0)
         self.autoencoder.save_weights(save_dir + '/ae_weights.h5')
         print('Pretrained weights are saved to %s/ae_weights.h5' % save_dir)
