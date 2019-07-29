@@ -174,7 +174,7 @@ class FcDEC(object):
             log_dir=tensorboard_dir, 
             profile_batch=0, 
             update_freq='epoch', 
-            write_images=True,
+            write_images=False,
             histogram_freq=1
         )
 

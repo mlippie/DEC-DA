@@ -13,4 +13,5 @@ pretrain_log.csv
 # ignore others
 *.pyc
 tmp/
+temp.png
 

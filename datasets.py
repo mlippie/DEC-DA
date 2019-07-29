@@ -20,10 +20,12 @@ class DatasetWrapper:
         self.images = np.empty(shape=shape, dtype=np.float32)
         
         for i, chan in enumerate(channels):
-            h5fp[chan]["masks"].read_direct(ims)
+            h5fp[chan]["images"].read_direct(ims)
             h5fp[chan]["masks"].read_direct(masks)
 
             self.images[i] = np.multiply(ims[indices], masks[indices], dtype=np.float32)
+
+            # TODO: check if per-image normalization is better
             self.images[i] = (self.images[i]-self.images[i].min())/(self.images[i].max()+self.images[i].min())
         self.images = np.moveaxis(self.images, 0, -1)
 
@@ -119,7 +121,7 @@ if __name__ == "__main__":
 
     ds, _ = load_data_conv(data)
 
-    print(ds[0, :, :, 0].min(),ds[0, :, :, 0].max())
+    print(ds[0, :, :, 0].min(),ds[0, :, :, 0].max(), ds[0, :, :, 0].mean())
 
     from matplotlib import pyplot as plt
     plt.imshow(ds[0, :, :, 0])
