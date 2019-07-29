@@ -13,9 +13,9 @@ import metrics
 def _get_data_and_model(args):
     # prepare dataset
     if args.method in ['FcDEC', 'FcIDEC', 'FcDEC-DA', 'FcIDEC-DA']:
-        x, y = load_data(args.dataset)
+        x, y = load_data(args.dataset, args.subset_key)
     elif args.method in ['ConvDEC', 'ConvIDEC', 'ConvDEC-DA', 'ConvIDEC-DA']:
-        x, y = load_data_conv(args.dataset)
+        x, y = load_data_conv(args.dataset, args.subset_key)
     else:
         raise ValueError("Invalid value for method, which can only be in ['FcDEC', 'FcIDEC', 'ConvDEC', 'ConvIDEC', "
                          "'FcDEC-DA', 'FcIDEC-DA', 'ConvDEC-DA', 'ConvIDEC-DA']")
@@ -107,6 +107,8 @@ if __name__ == "__main__":
                         help="Clustering algorithm")
     parser.add_argument('--dataset', default='mnist',
                         help="Dataset name to train on")
+    parser.add_argument('--subset-key', default=None, type=str,
+                        help="Key to define subset of dataset to be used. Key must be present in 'subset' Group of HDF5 dataset.")
     parser.add_argument('-d', '--save-dir', default='results/temp',
                         help="Dir to save the results")
 
@@ -139,7 +141,7 @@ if __name__ == "__main__":
                         help="Number of iterations to update the target distribution")
     parser.add_argument('--tol', default=0.001, type=float,
                         help="Threshold of stopping training")
-    parser.add_argument('--n-clusters', default=10, type=float,
+    parser.add_argument('--n-clusters', default=10, type=int,
                         help="Number of clusters to look for")
     args = parser.parse_args()
     print('+' * 30, ' Parameters ', '+' * 30)
