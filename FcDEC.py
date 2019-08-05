@@ -177,7 +177,7 @@ class FcDEC(object):
             log_dir=tensorboard_dir, 
             profile_batch=0, 
             update_freq='epoch', 
-            write_images=True,
+            write_images=False,
             histogram_freq=1
         )
 
@@ -211,22 +211,32 @@ class FcDEC(object):
 
         if "Conv" in type(self).__name__:
             class ImageWriterCallback(callbacks.Callback):
-                def __init__(self, dir, tensors):
+                def __init__(self, dir, ae, images):
                     self.writer = summary_ops_v2.create_file_writer_v2(dir)
-                    self.tensors = tensors
+                    self.ae = ae
+                    self.images = images
+                    self.scaled_images = np.array(self.images*255.0, dtype=np.uint8)
+                    
+                    with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
+                        summary_ops_v2.image(
+                            "original_image", 
+                            self.scaled_images,
+                            max_images=3,
+                            step=0
+                        )
 
                 def on_epoch_end(self, epoch, logs=None):
                     with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
-                        for tensor in self.tensors:
-                            res = summary_ops_v2.image(
-                                "original_image", 
-                                tensor, 
-                                max_images=5,
-                                step=epoch
-                            )
+                        restored = self.ae.predict(self.images)
+                        summary_ops_v2.image(
+                            "restored_image", 
+                            restored, 
+                            max_images=3,
+                            step=epoch
+                        )
                         self.writer.flush()
 
-            cb.append(ImageWriterCallback(tensorboard_dir, [self.autoencoder.layers[0].input]))
+            cb.append(ImageWriterCallback(tensorboard_dir, self.autoencoder, x[:3]))
 
         # begin pretraining
         t0 = time()

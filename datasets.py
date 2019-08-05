@@ -117,7 +117,8 @@ def load_data(dataset, subset_key=None):
     return x.reshape([x.shape[0], -1]), y
 
 if __name__ == "__main__":
-    data = "/home/maximl/DATA/Experiment_data/9-color/earlyfix_d34.h5"
+    # data = "/home/maximl/DATA/Experiment_data/9-color/earlyfix_d34.h5"
+    data = "fmnist"
 
     ds, _ = load_data_conv(data)
 

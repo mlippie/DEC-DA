@@ -1,4 +1,5 @@
 from tensorflow.keras.optimizers import SGD, Adam
+import tensorflow as tf
 import os
 import numpy as np
 from time import time
@@ -98,6 +99,7 @@ def test(args):
 
 
 if __name__ == "__main__":
+
     # setting the hyper parameters
     import argparse
 
