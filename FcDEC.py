@@ -165,6 +165,7 @@ class FcDEC(object):
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
 
         csv_logger = callbacks.CSVLogger(save_dir + '/pretrain_log.csv')
+        checkpointer = callbacks.ModelCheckpoint(save_dir + '/ae_weights.h5', save_weights_only=True)
 
         tensorboard_dir = save_dir + '/tb'
         summary_writer = tf.summary.create_file_writer(tensorboard_dir)
@@ -182,7 +183,7 @@ class FcDEC(object):
             histogram_freq=1
         )
 
-        cb = [csv_logger, tensorboard]
+        cb = [csv_logger, checkpointer, tensorboard]
             
         # split train validation data
         if y is None:
