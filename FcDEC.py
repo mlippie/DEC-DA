@@ -17,9 +17,13 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import callbacks
 from tensorflow.keras.initializers import VarianceScaling
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.python.ops import summary_ops_v2
+from tensorflow.python.eager import context
 from sklearn.cluster import KMeans
 import metrics
 from sklearn.model_selection import train_test_split
+from tensorflow.python.keras import backend as K
+from tensorflow.python.ops import array_ops
 
 
 def autoencoder(dims, act='relu'):
@@ -168,18 +172,12 @@ class FcDEC(object):
         checkpointer = callbacks.ModelCheckpoint(save_dir + '/ae_weights.h5', save_weights_only=True)
 
         tensorboard_dir = save_dir + '/tb'
-        summary_writer = tf.summary.create_file_writer(tensorboard_dir)
-        summary_writer.set_as_default()
-
-        if "Conv" in str(type(self)):
-            tf.summary.image("original_image", self.autoencoder.layers[0].input, max_outputs=5)
-            tf.summary.image("restored_image", self.autoencoder.layers[-1].output, max_outputs=5)
         
         tensorboard = callbacks.TensorBoard(
             log_dir=tensorboard_dir, 
             profile_batch=0, 
             update_freq='epoch', 
-            write_images=False,
+            write_images=True,
             histogram_freq=1
         )
 
@@ -191,7 +189,7 @@ class FcDEC(object):
         else:
             x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
 
-        if y is not None and verbose > 0:
+        if y is not None and verbose > 2:
             class PrintACC(callbacks.Callback):
                 def __init__(self, x, y):
                     self.x = x
@@ -210,6 +208,25 @@ class FcDEC(object):
                           % (metrics.acc(self.y, y_pred), metrics.nmi(self.y, y_pred)))
 
             cb.append(PrintACC(x, y))
+
+        if "Conv" in type(self).__name__:
+            class ImageWriterCallback(callbacks.Callback):
+                def __init__(self, dir, tensors):
+                    self.writer = summary_ops_v2.create_file_writer_v2(dir)
+                    self.tensors = tensors
+
+                def on_epoch_end(self, epoch, logs=None):
+                    with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
+                        for tensor in self.tensors:
+                            res = summary_ops_v2.image(
+                                "original_image", 
+                                tensor, 
+                                max_images=5,
+                                step=epoch
+                            )
+                        self.writer.flush()
+
+            cb.append(ImageWriterCallback(tensorboard_dir, [self.autoencoder.layers[0].input]))
 
         # begin pretraining
         t0 = time()
