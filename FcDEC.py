@@ -122,24 +122,30 @@ class ClusteringLayer(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class DASequence(tf.keras.utils.Sequence):
+class DAGen(tf.keras.preprocessing.image.ImageDataGenerator):
 
-    def __init__(self, x, batch_size):
-        self.x = x
-        self.batch_size = batch_size
-        self.datagen = ImageDataGenerator(width_shift_range=0.1, height_shift_range=0.1, rotation_range=10)
+    def __init__(self):
+        super().__init__(width_shift_range=0.1, height_shift_range=0.1, rotation_range=10)
+        
 
-    def __len__(self):
-        return int(self.x.shape[0]/self.batch_size)
-
-    def __getitem__(self, idx):
-        start = idx*self.batch_size
-        end = min((idx+1)*self.batch_size, self.x.shape[0])
-        batch_x = self.x[start:end]
-
-        for i, x in enumerate(batch_x):
-            batch_x[i] = self.datagen.random_transform(x)
-        return tuple([batch_x, batch_x])
+    def flow(self, x, batch_size):
+        if len(x.shape) > 2:  # image
+            gen0 = super().flow(x, shuffle=True, batch_size=batch_size)
+            while True:
+                batch_x = gen0.next()
+                yield tuple([batch_x, batch_x])
+        else:
+            width = int(np.sqrt(x.shape[-1]))
+            if width * width == x.shape[-1]:  # gray
+                im_shape = [-1, width, width, 1]
+            else:  # RGB
+                width = int(np.sqrt(x.shape[-1] / 3.0))
+                im_shape = [-1, width, width, 3]
+            gen0 = super().flow(np.reshape(x, im_shape), shuffle=True, batch_size=batch_size)
+            while True:
+                batch_x = gen0.next()
+                batch_x = np.reshape(batch_x, [batch_x.shape[0], x.shape[-1]])
+                yield tuple([batch_x, batch_x])
 
 
 class FcDEC(object):
@@ -189,7 +195,7 @@ class FcDEC(object):
         else:
             x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
 
-        if y is not None and verbose > 2:
+        if y is not None and verbose > 0:
             class PrintACC(callbacks.Callback):
                 def __init__(self, x, y):
                     self.x = x
@@ -252,15 +258,17 @@ class FcDEC(object):
             print('Using augmentation for ae')
             print('-=*'*20)
 
-            seq = DASequence(x, batch_size)
-            val_seq = DASequence(x_val, batch_size)
+            gen = DAGen().flow(x, batch_size)
+            gen_len = int(x.shape[0]/batch_size)
+            val_gen = DAGen().flow(x_val, batch_size)
+            val_gen_len = int(x_val.shape[0]/batch_size)
 
             self.autoencoder.fit_generator(
-                seq, steps_per_epoch=len(seq), 
+                gen, steps_per_epoch=gen_len, 
                 epochs=epochs, callbacks=cb, verbose=verbose, 
-                validation_data=val_seq,
-                validation_steps=len(val_seq),
-                workers=8
+                validation_data=val_gen,
+                validation_steps=val_gen_len,
+                workers=8, use_multiprocessing=True
             )
 
         print('Pretraining time: ', time() - t0)
