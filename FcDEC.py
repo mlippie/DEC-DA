@@ -223,22 +223,22 @@ class FcDEC(object):
                     self.images = images
                     self.scaled_images = np.array(self.images*255.0, dtype=np.uint8)
                     self.n_channels = images.shape[-1] 
-                    self.make_summary(self.scaled_images, "original")
+                    self.make_summary(0, self.scaled_images, "original")
 
-                def make_summary(self, tensor, type):
+                def make_summary(self, step, tensor, type):
                     with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
                         for i in range(self.n_channels):
                             summary_ops_v2.image(
                                 "%s image dim %d" % (type, i), 
                                 tensor[:, :, :, i, tf.newaxis],
                                 max_images=3,
-                                step=0
+                                step=step
                             )
 
                 def on_epoch_end(self, epoch, logs=None):
                     with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
                         restored = self.ae.predict(self.images)
-                        self.make_summary(restored, "restored")
+                        self.make_summary(epoch, restored, "restored")
 
             cb.append(ImageWriterCallback(tensorboard_dir, self.autoencoder, x[:3]))
 
