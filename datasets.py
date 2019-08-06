@@ -25,8 +25,11 @@ class DatasetWrapper:
 
             self.images[i] = np.multiply(ims[indices], masks[indices], dtype=np.float32)
 
-            # TODO: check if per-image normalization is better
-            # self.images[i] = (self.images[i]-self.images[i].min())/(self.images[i].max()+self.images[i].min())
+            # per image normalization
+            min_ = self.images[i].reshape(images_shape[0], -1).min(axis=1)
+            max_ = self.images[i].reshape(images_shape[0], -1).max(axis=1)
+
+            self.images[i] = ((self.images[i].T-min_)/(min_+max_)).T
         self.images = np.moveaxis(self.images, 0, -1)
 
 
