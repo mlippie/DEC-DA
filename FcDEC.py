@@ -24,6 +24,8 @@ import metrics
 from sklearn.model_selection import train_test_split
 from tensorflow.python.keras import backend as K
 from tensorflow.python.ops import array_ops
+import losses
+import callbacks as my_callbacks
 
 
 def autoencoder(dims, act='relu'):
@@ -172,13 +174,27 @@ class FcDEC(object):
     def pretrain(self, x, y=None, optimizer='adam', epochs=200, batch_size=256,
                  save_dir='results/temp', verbose=1, aug_pretrain=False):
         print('Begin pretraining: ', '-' * 60)
-        self.autoencoder.compile(optimizer=optimizer, loss='mse')
-
-        csv_logger = callbacks.CSVLogger(save_dir + '/pretrain_log.csv')
-        checkpointer = callbacks.ModelCheckpoint(save_dir + '/ae_weights.h5', save_weights_only=True)
+        
+        # split train validation data
+        if y is None:
+            x, x_val = train_test_split(x, test_size=0.1)
+        else:
+            x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
 
         tensorboard_dir = save_dir + '/tb'
-        
+        writer = summary_ops_v2.create_file_writer_v2(tensorboard_dir)
+        steps_per_epoch = int(x.shape[0]/batch_size)
+
+        loss = losses.SobelMSELoss()
+        self.autoencoder.compile(optimizer=optimizer, loss=loss)
+
+        sobelmselosscallback = my_callbacks.SobelMSELossCallback(
+            loss,
+            writer,
+            steps_per_epoch
+        )
+        csv_logger = callbacks.CSVLogger(save_dir + '/pretrain_log.csv')
+        checkpointer = callbacks.ModelCheckpoint(save_dir + '/ae_weights.h5', save_weights_only=True)
         tensorboard = callbacks.TensorBoard(
             log_dir=tensorboard_dir, 
             profile_batch=0, 
@@ -189,12 +205,6 @@ class FcDEC(object):
 
         cb = [csv_logger, checkpointer, tensorboard]
             
-        # split train validation data
-        if y is None:
-            x, x_val = train_test_split(x, test_size=0.1)
-        else:
-            x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
-
         if y is not None and verbose > 0:
             class PrintACC(callbacks.Callback):
                 def __init__(self, x, y):
@@ -217,8 +227,8 @@ class FcDEC(object):
 
         if "Conv" in type(self).__name__:
             class ImageWriterCallback(callbacks.Callback):
-                def __init__(self, dir, ae, images):
-                    self.writer = summary_ops_v2.create_file_writer_v2(dir)
+                def __init__(self, ae, images, writer):
+                    self.writer = writer 
                     self.ae = ae
                     self.images = images
                     self.scaled_images = np.array(self.images*255.0, dtype=np.uint8)
@@ -240,7 +250,7 @@ class FcDEC(object):
                         restored = self.ae.predict(self.images)
                         self.make_summary(epoch, restored, "restored")
 
-            cb.append(ImageWriterCallback(tensorboard_dir, self.autoencoder, x[:3]))
+            cb.append(ImageWriterCallback(self.autoencoder, x[:3], writer))
 
         # begin pretraining
         t0 = time()
@@ -257,7 +267,7 @@ class FcDEC(object):
             print('-=*'*20)
 
             gen = DAGen().flow(x, batch_size)
-            gen_len = int(x.shape[0]/batch_size)
+            gen_len = steps_per_epoch 
             val_gen = DAGen().flow(x_val, batch_size)
             val_gen_len = int(x_val.shape[0]/batch_size)
 
