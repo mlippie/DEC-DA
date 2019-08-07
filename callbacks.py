@@ -23,11 +23,18 @@ class PrintACC(callbacks.Callback):
         y_pred = km.fit_predict(features)
         
         with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
-            summary_ops_v2.scalar(
-                "Adjusted Rand Score",
-                metrics.ari(self.y, y_pred),
-                step=epoch
-            )
+            for name, m in metrics.get_supervised_metric_handles():
+                summary_ops_v2.scalar(
+                    name,
+                    m(self.y, y_pred),
+                    step=epoch
+                )
+            for name, m in metrics.get_unsupervised_metric_handles():
+                summary_ops_v2.scalar(
+                    name,
+                    m(features, y_pred),
+                    step=epoch
+                )
 
 
 class ImageWriterCallback(callbacks.Callback):

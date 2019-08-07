@@ -186,10 +186,10 @@ class FcDEC(object):
         cb = [csv_logger, checkpointer, tensorboard]
         writer = summary_ops_v2.create_file_writer_v2(tensorboard_dir) 
         if y_val is not None and verbose > 0:
-            cb.append(my_cb.PrintACC(x_val, y_val, writer))
+            cb.append(my_cb.PrintACC(x, y, writer))
 
         if "Conv" in type(self).__name__:
-            cb.append(my_cb.ImageWriterCallback(self.autoencoder, x[:3], writer))
+            cb.append(my_cb.ImageWriterCallback(self.autoencoder, x_val[:3], writer))
 
         # begin pretraining
         t0 = time()

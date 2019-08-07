@@ -1,14 +1,13 @@
 import numpy as np
-from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score, balanced_accuracy_score, roc_auc_score, f1_score
+from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score, homogeneity_score, completeness_score, calinski_harabasz_score
 
-nmi = normalized_mutual_info_score
 ari = adjusted_rand_score
-roc_auc = roc_auc_score
-f1 = f1_score
+homo = homogeneity_score
+compl = completeness_score
+calihar = calinski_harabasz_score
 
-def balanced_accuracy(y_true, y_pred):
-    return balanced_accuracy_score(y_true, y_pred)
-
+def nmi(y_true, y_pred):
+    return normalized_mutual_info_score(y_true, y_pred, method="arithmetic")
 
 def acc(y_true, y_pred):
     """
@@ -30,3 +29,18 @@ def acc(y_true, y_pred):
     from sklearn.utils.linear_assignment_ import linear_assignment
     ind = linear_assignment(w.max() - w)
     return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
+
+def get_supervised_metric_handles():
+    return [
+        ("Normalized mutual information", nmi),
+        ("Adjusted rand index", ari),
+        ("Homogeneity", homo),
+        ("Completeness", compl),
+        ("Clustering accuracy", acc)
+    ]
+
+
+def get_unsupervised_metric_handles():
+    return [
+        ("Calinski Harbasz", calihar)
+    ]
