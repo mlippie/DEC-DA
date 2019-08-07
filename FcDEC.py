@@ -262,7 +262,7 @@ class FcDEC(object):
     def train_on_batch(self, x, y, sample_weight=None):
         return self.model.train_on_batch(x, y, sample_weight)
 
-    def fit(self, x, y, x_val, y_val, maxiter=2e4, batch_size=256, tol=1e-3,
+    def fit(self, x, y, maxiter=2e4, batch_size=256, tol=1e-3,
             update_interval=140, save_dir='./results/temp', aug_cluster=False):
         print('Begin clustering:', '-' * 60)
         print('Update interval', update_interval)

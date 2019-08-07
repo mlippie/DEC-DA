@@ -1,8 +1,13 @@
 import numpy as np
-from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score
+from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score, balanced_accuracy_score, roc_auc_score, f1_score
 
 nmi = normalized_mutual_info_score
 ari = adjusted_rand_score
+roc_auc = roc_auc_score
+f1 = f1_score
+
+def balanced_accuracy(y_true, y_pred):
+    return balanced_accuracy_score(y_true, y_pred)
 
 
 def acc(y_true, y_pred):

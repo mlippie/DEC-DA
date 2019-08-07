@@ -65,10 +65,11 @@ def train(args):
     
     # split train validation data
     if y is None:
-        x, x_val = train_test_split(x, test_size=0.1)
+        x_train, x_val = train_test_split(x, test_size=0.1)
         y_val = None
+        y_train = None
     else:
-        x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
+        x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.1)
     
     model.model.summary()
 
@@ -80,13 +81,13 @@ def train(args):
         model.autoencoder.load_weights(args.pretrained_weights)
     else:  # train
         pretrain_optimizer = SGD(1.0, 0.9) if args.method in ['FcDEC', 'FcIDEC', 'FcDEC-DA', 'FcIDEC-DA'] else 'adam'
-        model.pretrain(x, y, x_val, y_val, optimizer=pretrain_optimizer, epochs=args.pretrain_epochs, batch_size=args.batch_size,
+        model.pretrain(x_train, y_train, x_val, y_val, optimizer=pretrain_optimizer, epochs=args.pretrain_epochs, batch_size=args.batch_size,
                        save_dir=args.save_dir, verbose=args.verbose, aug_pretrain=args.aug_pretrain)
     t1 = time()
     print("Time for pretraining: %ds" % (t1 - t0))
 
     # clustering
-    y_pred = model.fit(x, y, x_val, y_val, maxiter=args.maxiter, batch_size=args.batch_size, update_interval=args.update_interval,
+    y_pred = model.fit(x, y, maxiter=args.maxiter, batch_size=args.batch_size, update_interval=args.update_interval,
                        save_dir=args.save_dir, aug_cluster=args.aug_cluster)
     if y is not None:
         print('Final: acc=%.4f, nmi=%.4f, ari=%.4f' %
