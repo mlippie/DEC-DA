@@ -2,6 +2,7 @@ from tensorflow.keras.optimizers import SGD, Adam
 import tensorflow as tf
 import os
 import numpy as np
+from sklearn.model_selection import train_test_split
 from time import time
 from FcDEC import FcDEC
 from FcIDEC import FcIDEC
@@ -9,6 +10,7 @@ from ConvDEC import ConvDEC
 from ConvIDEC import ConvIDEC
 from datasets import load_data, load_data_conv
 import metrics
+import callbacks as my_cb
 
 
 def _get_data_and_model(args):
@@ -60,6 +62,14 @@ def _get_data_and_model(args):
 def train(args):
     # get data and model
     (x, y), model = _get_data_and_model(args)
+    
+    # split train validation data
+    if y is None:
+        x, x_val = train_test_split(x, test_size=0.1)
+        y_val = None
+    else:
+        x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
+    
     model.model.summary()
 
     # pretraining
@@ -70,13 +80,13 @@ def train(args):
         model.autoencoder.load_weights(args.pretrained_weights)
     else:  # train
         pretrain_optimizer = SGD(1.0, 0.9) if args.method in ['FcDEC', 'FcIDEC', 'FcDEC-DA', 'FcIDEC-DA'] else 'adam'
-        model.pretrain(x, y, optimizer=pretrain_optimizer, epochs=args.pretrain_epochs, batch_size=args.batch_size,
+        model.pretrain(x, y, x_val, y_val, optimizer=pretrain_optimizer, epochs=args.pretrain_epochs, batch_size=args.batch_size,
                        save_dir=args.save_dir, verbose=args.verbose, aug_pretrain=args.aug_pretrain)
     t1 = time()
     print("Time for pretraining: %ds" % (t1 - t0))
 
     # clustering
-    y_pred = model.fit(x, y=y, maxiter=args.maxiter, batch_size=args.batch_size, update_interval=args.update_interval,
+    y_pred = model.fit(x, y, x_val, y_val, maxiter=args.maxiter, batch_size=args.batch_size, update_interval=args.update_interval,
                        save_dir=args.save_dir, aug_cluster=args.aug_cluster)
     if y is not None:
         print('Final: acc=%.4f, nmi=%.4f, ari=%.4f' %
@@ -102,6 +112,8 @@ if __name__ == "__main__":
 
     # setting the hyper parameters
     import argparse
+    tf.random.set_seed(42)
+    np.random.seed(42)
 
     parser = argparse.ArgumentParser(description='main')
     parser.add_argument('--method', default='FcDEC',

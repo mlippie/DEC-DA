@@ -17,13 +17,10 @@ from tensorflow.keras.models import Model
 from tensorflow.keras import callbacks
 from tensorflow.keras.initializers import VarianceScaling
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.python.ops import summary_ops_v2
-from tensorflow.python.eager import context
-from sklearn.cluster import KMeans
-import metrics
-from sklearn.model_selection import train_test_split
 from tensorflow.python.keras import backend as K
 from tensorflow.python.ops import array_ops
+import callbacks as my_cb
+from tensorflow.python.ops import summary_ops_v2
 
 
 def autoencoder(dims, act='relu'):
@@ -126,7 +123,6 @@ class DAGen(tf.keras.preprocessing.image.ImageDataGenerator):
 
     def __init__(self):
         super().__init__(width_shift_range=0.1, height_shift_range=0.1, rotation_range=10)
-        
 
     def flow(self, x, batch_size):
         if len(x.shape) > 2:  # image
@@ -169,7 +165,7 @@ class FcDEC(object):
         clustering_layer = ClusteringLayer(self.n_clusters, name='clustering')(self.encoder.output)
         self.model = Model(inputs=self.encoder.input, outputs=clustering_layer)
 
-    def pretrain(self, x, y=None, optimizer='adam', epochs=200, batch_size=256,
+    def pretrain(self, x, y, x_val, y_val, optimizer='adam', epochs=200, batch_size=256,
                  save_dir='results/temp', verbose=1, aug_pretrain=False):
         print('Begin pretraining: ', '-' * 60)
         self.autoencoder.compile(optimizer=optimizer, loss='mse')
@@ -188,59 +184,12 @@ class FcDEC(object):
         )
 
         cb = [csv_logger, checkpointer, tensorboard]
-            
-        # split train validation data
-        if y is None:
-            x, x_val = train_test_split(x, test_size=0.1)
-        else:
-            x, x_val, y, y_val = train_test_split(x, y, test_size=0.1)
-
-        if y is not None and verbose > 0:
-            class PrintACC(callbacks.Callback):
-                def __init__(self, x, y):
-                    self.x = x
-                    self.y = y
-                    super(PrintACC, self).__init__()
-
-                def on_epoch_end(self, epoch, logs=None):
-                    if int(epochs / 10) != 0 and epoch % int(epochs/10) != 0:
-                        return
-                    feature_model = Model(self.model.input,
-                                          self.model.get_layer(index=int(len(self.model.layers) / 2)).output)
-                    features = feature_model.predict(self.x)
-                    km = KMeans(n_clusters=len(np.unique(self.y)), n_init=20, n_jobs=4)
-                    y_pred = km.fit_predict(features)
-                    print(' '*8 + '|==>  acc: %.4f,  nmi: %.4f  <==|'
-                          % (metrics.acc(self.y, y_pred), metrics.nmi(self.y, y_pred)))
-
-            cb.append(PrintACC(x, y))
+        writer = summary_ops_v2.create_file_writer_v2(tensorboard_dir) 
+        if y_val is not None and verbose > 0:
+            cb.append(my_cb.PrintACC(x_val, y_val, writer))
 
         if "Conv" in type(self).__name__:
-            class ImageWriterCallback(callbacks.Callback):
-                def __init__(self, dir, ae, images):
-                    self.writer = summary_ops_v2.create_file_writer_v2(dir)
-                    self.ae = ae
-                    self.images = images
-                    self.scaled_images = np.array(self.images*255.0, dtype=np.uint8)
-                    self.n_channels = images.shape[-1] 
-                    self.make_summary(0, self.scaled_images, "original")
-
-                def make_summary(self, step, tensor, type):
-                    with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
-                        for i in range(self.n_channels):
-                            summary_ops_v2.image(
-                                "%s image dim %d" % (type, i), 
-                                tensor[:, :, :, i, tf.newaxis],
-                                max_images=3,
-                                step=step
-                            )
-
-                def on_epoch_end(self, epoch, logs=None):
-                    with context.eager_mode(), self.writer.as_default(), summary_ops_v2.always_record_summaries():
-                        restored = self.ae.predict(self.images)
-                        self.make_summary(epoch, restored, "restored")
-
-            cb.append(ImageWriterCallback(tensorboard_dir, self.autoencoder, x[:3]))
+            cb.append(my_cb.ImageWriterCallback(self.autoencoder, x[:3], writer))
 
         # begin pretraining
         t0 = time()
@@ -313,7 +262,7 @@ class FcDEC(object):
     def train_on_batch(self, x, y, sample_weight=None):
         return self.model.train_on_batch(x, y, sample_weight)
 
-    def fit(self, x, y=None, maxiter=2e4, batch_size=256, tol=1e-3,
+    def fit(self, x, y, x_val, y_val, maxiter=2e4, batch_size=256, tol=1e-3,
             update_interval=140, save_dir='./results/temp', aug_cluster=False):
         print('Begin clustering:', '-' * 60)
         print('Update interval', update_interval)
