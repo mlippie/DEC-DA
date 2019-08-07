@@ -7,7 +7,7 @@ compl = completeness_score
 calihar = calinski_harabasz_score
 
 def nmi(y_true, y_pred):
-    return normalized_mutual_info_score(y_true, y_pred, method="arithmetic")
+    return normalized_mutual_info_score(y_true, y_pred, average_method="arithmetic")
 
 def acc(y_true, y_pred):
     """
