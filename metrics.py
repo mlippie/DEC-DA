@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.optimize
 from sklearn.metrics import normalized_mutual_info_score, adjusted_rand_score, homogeneity_score, completeness_score, calinski_harabasz_score
 
 ari = adjusted_rand_score
@@ -26,8 +27,10 @@ def acc(y_true, y_pred):
     w = np.zeros((D, D), dtype=np.int64)
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
-    from sklearn.utils.linear_assignment_ import linear_assignment
-    ind = linear_assignment(w.max() - w)
+    ind = scipy.optimize.linear_sum_assignment(w.max() - w)
+
+    scipy.stats.lin
+
     return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
 
 def get_supervised_metric_handles():
