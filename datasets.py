@@ -16,6 +16,10 @@ class DatasetWrapper:
         else:
             indices = np.s_[:]
 
+        self.labels = None
+        if "labels" in h5fp:
+            self.labels = h5fp["labels"][indices]
+
         shape = tuple([len(channels)] + images_shape)
         self.images = np.empty(shape=shape, dtype=np.float32)
         
@@ -40,8 +44,8 @@ def load_hdf5(dataset, subset_key=None):
             subset_key
         )
     
-    print("HDF5 samples", ds.images.shape)
-    return ds.images, None
+    print("HDF5 samples", ds.images.shape, ds.labels.shape)
+    return ds.images, ds.labels
 
 
 def load_mnist():
