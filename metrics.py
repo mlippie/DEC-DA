@@ -27,9 +27,9 @@ def acc(y_true, y_pred):
     w = np.zeros((D, D), dtype=np.int64)
     for i in range(y_pred.size):
         w[y_pred[i], y_true[i]] += 1
-    ind = scipy.optimize.linear_sum_assignment(w.max() - w)
+    row_ind, col_ind = scipy.optimize.linear_sum_assignment(w.max() - w)
 
-    return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
+    return w[row_ind, col_ind].sum() / y_pred.size
 
 def get_supervised_metric_handles():
     return [
