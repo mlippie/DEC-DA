@@ -19,7 +19,7 @@ class PrintACC(callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         if (epoch % self.freq) != 0:
-            pass
+            return
 
         feature_model = Model(inputs=self.model.input, outputs=self.model.get_layer(name="embedding").output)
         features = feature_model.predict(self.x)
