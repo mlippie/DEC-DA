@@ -69,7 +69,7 @@ def train(args):
         y_val = None
         y_train = None
     else:
-        x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.1)
+        x_train, x_val, y_train, y_val = train_test_split(x, y, stratify=y, test_size=0.1)
     
     model.model.summary()
 

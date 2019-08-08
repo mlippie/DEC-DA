@@ -18,7 +18,7 @@ class DatasetWrapper:
 
         self.labels = None
         if "labels" in h5fp:
-            self.labels = h5fp["labels"][indices]
+            self.labels = h5fp["labels"][:][indices]
 
         shape = tuple([len(channels)] + images_shape)
         self.images = np.empty(shape=shape, dtype=np.float32)
