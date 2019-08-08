@@ -24,6 +24,7 @@ class DatasetWrapper:
         self.images = np.empty(shape=shape, dtype=np.float32)
         
         for i, chan in enumerate(channels):
+            print("Loading channel %d" % i)
             h5fp[chan]["images"].read_direct(ims)
             h5fp[chan]["masks"].read_direct(masks)
 
@@ -32,6 +33,8 @@ class DatasetWrapper:
             # per image normalization
             min_ = self.images[i].reshape(images_shape[0], -1).min(axis=1)
             max_ = self.images[i].reshape(images_shape[0], -1).max(axis=1)
+
+            max_ = np.where(max_== 0.0, np.ones_like(max_), max_)
 
             self.images[i] = ((self.images[i].T-min_)/(min_+max_)).T
         self.images = np.moveaxis(self.images, 0, -1)
