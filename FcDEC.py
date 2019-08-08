@@ -191,6 +191,8 @@ class FcDEC(object):
         if "Conv" in type(self).__name__:
             cb.append(my_cb.ImageWriterCallback(self.autoencoder, x_val[:3], writer))
 
+        cb.append(my_cb.TensorBoardProjectorCallback([self.encoder.output], self.model, save_dir, 1))
+
         # begin pretraining
         t0 = time()
         if not aug_pretrain:
