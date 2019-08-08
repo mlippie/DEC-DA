@@ -29,8 +29,6 @@ def acc(y_true, y_pred):
         w[y_pred[i], y_true[i]] += 1
     ind = scipy.optimize.linear_sum_assignment(w.max() - w)
 
-    scipy.stats.lin
-
     return sum([w[i, j] for i, j in ind]) * 1.0 / y_pred.size
 
 def get_supervised_metric_handles():
