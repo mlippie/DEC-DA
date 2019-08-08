@@ -186,7 +186,7 @@ class FcDEC(object):
         cb = [csv_logger, checkpointer, tensorboard]
         writer = summary_ops_v2.create_file_writer_v2(tensorboard_dir) 
         if y_val is not None and verbose > 0:
-            cb.append(my_cb.PrintACC(x, y, writer))
+            cb.append(my_cb.PrintACC(x, y, writer, 20))
 
         if "Conv" in type(self).__name__:
             cb.append(my_cb.ImageWriterCallback(self.autoencoder, x_val[:3], writer))

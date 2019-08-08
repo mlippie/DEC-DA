@@ -10,13 +10,17 @@ import metrics
 callbacks = keras.callbacks
 
 class PrintACC(callbacks.Callback):
-    def __init__(self, x, y, writer):
+    def __init__(self, x, y, writer, freq=1):
         self.x = x
         self.y = y
         self.writer = writer
+        self.freq = freq
         super(PrintACC, self).__init__()
 
     def on_epoch_end(self, epoch, logs=None):
+        if (epoch % self.freq) != 0:
+            pass
+
         feature_model = Model(inputs=self.model.input, outputs=self.model.get_layer(name="embedding").output)
         features = feature_model.predict(self.x)
         km = KMeans(n_clusters=len(np.unique(self.y)), n_init=20, n_jobs=4)
