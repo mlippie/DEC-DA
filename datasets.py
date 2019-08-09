@@ -1,11 +1,38 @@
 import numpy as np
-import tensorflow as tf
 import time
 import h5py
 
+try:
+    import tensorflow as tf
+except ImportError:
+    pass
+
+
+def minmaxnorm(inp):
+
+    # per image normalization
+    min_ = inp.reshape(inp.shape[0], -1).min(axis=1)
+    max_ = inp.reshape(inp.shape[0], -1).max(axis=1)
+
+    max_ = np.where(max_== 0.0, np.ones_like(max_), max_)
+
+    return ((inp.T-min_)/(min_+max_)).T
+
+
+def quantminmaxnorm(inp):
+
+    # per image normalization
+    quants = np.quantile(inp.reshape(inp.shape[0], -1), q=[0.05, 0.95], axis=1)
+    quants = np.where(quants == 0.0, np.ones_like(quants), quants)
+
+    return ((inp.T-quants[0])/(quants[0]+quants[1])).T
+
+
 class DatasetWrapper:
-    def __init__(self, h5fp, subset_key=None):
-        channels = [k for k in list(h5fp.keys()) if "channel" in k]
+    def __init__(self, h5fp, subset_key=None, channels=None, norm_func=minmaxnorm):
+        if channels is None:
+            channels = [k for k in list(h5fp.keys()) if "channel" in k]
+
         images_shape = list(h5fp[channels[0]]["images"].shape)
         ims = np.empty(shape=images_shape, dtype=np.float32)
         masks = np.empty(shape=images_shape, dtype=np.int8)
@@ -24,19 +51,15 @@ class DatasetWrapper:
         self.images = np.empty(shape=shape, dtype=np.float32)
         
         for i, chan in enumerate(channels):
-            print("Loading channel %d" % i)
+            print("Loading %s" % chan)
             h5fp[chan]["images"].read_direct(ims)
             h5fp[chan]["masks"].read_direct(masks)
 
             self.images[i] = np.multiply(ims[indices], masks[indices], dtype=np.float32)
 
-            # per image normalization
-            min_ = self.images[i].reshape(images_shape[0], -1).min(axis=1)
-            max_ = self.images[i].reshape(images_shape[0], -1).max(axis=1)
+            if norm_func is not None:
+                self.images[i] = norm_func(self.images[i])
 
-            max_ = np.where(max_== 0.0, np.ones_like(max_), max_)
-
-            self.images[i] = ((self.images[i].T-min_)/(min_+max_)).T
         self.images = np.moveaxis(self.images, 0, -1)
 
 
