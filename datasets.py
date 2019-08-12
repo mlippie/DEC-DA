@@ -10,7 +10,7 @@ except ImportError:
 
 def logtrans_ssc(inp, chan):
     if chan == 'channel_6':
-        return np.log(inp)
+        return np.log(inp+1)
     else:
         return inp
 
