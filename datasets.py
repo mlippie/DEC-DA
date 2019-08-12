@@ -11,6 +11,8 @@ except ImportError:
 def logtrans_ssc(inp, chan):
     if chan == 'channel_6':
         return np.log(inp)
+    else:
+        return inp
 
 
 def minmaxnorm(inp):
