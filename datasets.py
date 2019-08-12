@@ -8,6 +8,11 @@ except ImportError:
     pass
 
 
+def logtrans_ssc(inp, chan):
+    if chan == 'channel_6':
+        return np.log(inp)
+
+
 def minmaxnorm(inp):
 
     # per image normalization
@@ -29,7 +34,7 @@ def quantminmaxnorm(inp):
 
 
 class DatasetWrapper:
-    def __init__(self, h5fp, subset_key=None, channels=None, norm_func=minmaxnorm):
+    def __init__(self, h5fp, subset_key=None, channels=None, norm_func=minmaxnorm, trans_func=logtrans_ssc):
         if channels is None:
             channels = [k for k in list(h5fp.keys()) if "channel" in k]
 
@@ -57,6 +62,9 @@ class DatasetWrapper:
 
             self.images[i] = np.multiply(ims[indices], masks[indices], dtype=np.float32)
 
+            if trans_func is not None:
+                self.images[i] = trans_func(self.images[i], chan)
+            
             if norm_func is not None:
                 self.images[i] = norm_func(self.images[i])
 
