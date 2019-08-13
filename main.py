@@ -111,6 +111,18 @@ def test(args):
 
 if __name__ == "__main__":
 
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    print(gpus)
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                print(gpu)
+                tf.config.experimental.set_memory_growth(gpu, True)
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
     # setting the hyper parameters
     import argparse
     tf.random.set_seed(42)

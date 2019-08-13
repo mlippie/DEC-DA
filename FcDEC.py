@@ -21,6 +21,8 @@ from tensorflow.python.keras import backend as K
 from tensorflow.python.ops import array_ops
 import callbacks as my_cb
 from tensorflow.python.ops import summary_ops_v2
+from sklearn.cluster import KMeans
+import metrics
 
 
 def autoencoder(dims, act='relu'):
